@@ -1,6 +1,56 @@
-# services:
-  # backend:
+version: '3.8'
 
-  # gateway:
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: backend-prod
+    restart: always
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - PORT=${BACKEND_PORT}
+    depends_on:
+      - mongo
+    networks:
+      - private-network
 
-  # mongo:
+  gateway:
+    build:
+      context: ../gateway
+      dockerfile: Dockerfile
+    container_name: gateway-prod
+    restart: always
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=production
+      - GATEWAY_PORT=${GATEWAY_PORT}
+      - BACKEND_URL=http://backend:${BACKEND_PORT}
+    depends_on:
+      - backend
+    networks:
+      - private-network
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongo-prod
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    networks:
+      - private-network
+    volumes:
+      - mongo-data-prod:/data/db
+
+networks:
+  private-network:
+    driver: bridge
+
+volumes:
+  mongo-data-prod:S
